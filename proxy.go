@@ -3,6 +3,7 @@ package nprxy
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 
@@ -36,7 +37,11 @@ type ProxyConfig struct {
 	Direction       ProxyDirection
 	ListenAddress   string
 	UpstreamAddress string
+	TLS             *TLSConfig
 }
+
+// TLSConfig configuration for secure communication
+type TLSConfig struct{}
 
 // NewProxy create proxy from configuration
 func NewProxy(ctx context.Context, c ProxyConfig) error {
@@ -49,24 +54,43 @@ func NewProxy(ctx context.Context, c ProxyConfig) error {
 }
 
 func newHTTPProxy(ctx context.Context, c ProxyConfig) error {
+	// Parse upstream address
 	url, err := url.Parse(c.UpstreamAddress)
 	if err != nil || (url.Scheme != "http" && url.Scheme != "https") {
 		return fmt.Errorf("UpstreamAddress is not a valid url '%s': %v, or has unsupported scheme", c.UpstreamAddress, err)
 	}
 
+	// Setup listener for incoming connections
+	listener, err := getListener(c.ListenAddress, c.TLS)
+	if err != nil {
+		return err
+	}
+
+	// Setup proxy HTTP handler and server
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Proxy(middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{{URL: url}})))
-	srv := &http.Server{
-		Handler: e,
-		Addr:    c.ListenAddress,
-	}
+
+	srv := &http.Server{Handler: e}
+
+	// Listen for termination in the background
 	go func() {
 		select {
 		case <-ctx.Done():
 			srv.Shutdown(ctx)
 		}
 	}()
-	go e.Logger.Fatal(srv.ListenAndServe())
+
+	// Run server and handle requests in the background
+	go srv.Serve(listener)
+
+	// Continue
 	return nil
+}
+
+func getListener(address string, c *TLSConfig) (net.Listener, error) {
+	if c == nil {
+		return net.Listen("tcp", address)
+	}
+	return nil, fmt.Errorf("Not implemented")
 }
