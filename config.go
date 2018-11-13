@@ -1,20 +1,21 @@
 package nprxy
 
 import (
-	"net/url"
+	"time"
 )
 
 // Config for nprxy
 type Config struct {
-	Service struct {
-		Name       string
-		Endpoint   *url.URL
-		Operations OperationNamerConfig
-	}
-	Listen string
+	Services []ServiceConfig
 }
 
-// OperationNamerConfig configuration of OperationNamer
-type OperationNamerConfig struct {
-	Kind string
+// ServiceConfig general service configuration
+type ServiceConfig struct {
+	Name     string
+	Listen   string
+	Upstream string
+	Grace    time.Duration
+
+	// HTTP properties
+	Timeout time.Duration
 }
