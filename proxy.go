@@ -2,95 +2,54 @@ package nprxy
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"time"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
 )
 
-// ProxyProto proxied protocol
-type ProxyProto int
-
-const (
-	// ProxyHTTP proxies HTTP to specified endpoint
-	ProxyHTTP ProxyProto = iota
-	// ProxyTCP proxies TCP connection to specified address
-	ProxyTCP
-)
-
-// ProxyDirection direction of proxied connection
-type ProxyDirection int
-
-const (
-	// ProxyInbound forward traffic to impersonated service
-	ProxyInbound ProxyDirection = iota
-	// ProxyOutbound forward traffic to upstream dependecies of impersonated service
-	ProxyOutbound
-)
-
-// ProxyConfig proxy service configuration
-type ProxyConfig struct {
-	Proto           ProxyProto
-	Direction       ProxyDirection
-	ListenAddress   string
-	UpstreamAddress string
-	TLS             *TLSConfig
+// Proxy forwards data from listener to upstream connection
+type Proxy interface {
+	Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error))
 }
 
-// TLSConfig configuration for secure communication
-type TLSConfig struct{}
-
-// NewProxy create proxy from configuration
-func NewProxy(ctx context.Context, c ProxyConfig) error {
-	switch c.Proto {
-	case ProxyHTTP:
-		return newHTTPProxy(ctx, c)
-	default:
-		return fmt.Errorf("Unsupported protocol")
-	}
+// HTTPProxy forwards HTTP requests to upstream service
+type HTTPProxy struct {
+	Upstream    *url.URL
+	Grace       time.Duration
+	Middlewares []echo.MiddlewareFunc
 }
 
-func newHTTPProxy(ctx context.Context, c ProxyConfig) error {
-	// Parse upstream address
-	url, err := url.Parse(c.UpstreamAddress)
-	if err != nil || (url.Scheme != "http" && url.Scheme != "https") {
-		return fmt.Errorf("UpstreamAddress is not a valid url '%s': %v, or has unsupported scheme", c.UpstreamAddress, err)
+// Serve starts http server on listener, that uses connection from DialUpstream func to connect to upstream service and routes requests and response to and from upstream service
+func (h *HTTPProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error)) error {
+	if h.Grace == 0 {
+		h.Grace = 5 * time.Second // Set default grace period for shutdown
 	}
 
-	// Setup listener for incoming connections
-	listener, err := getListener(c.ListenAddress, c.TLS)
-	if err != nil {
-		return err
+	r := httputil.NewSingleHostReverseProxy(h.Upstream)
+	t := &http.Transport{
+		Dial:    DialUpstream,
+		DialTLS: DialUpstream,
 	}
+	r.Transport = t
 
-	// Setup proxy HTTP handler and server
 	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Proxy(middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{{URL: url}})))
+	e.Any("/*", echo.WrapHandler(r), h.Middlewares...)
 
-	srv := &http.Server{Handler: e}
+	s := http.Server{
+		Handler: e,
+	}
 
-	// Listen for termination in the background
 	go func() {
-		select {
-		case <-ctx.Done():
-			srv.Shutdown(ctx)
-		}
+		<-ctx.Done()
+
+		c, cancel := context.WithTimeout(context.Background(), h.Grace)
+		s.Shutdown(c)
+		cancel()
 	}()
 
-	// Run server and handle requests in the background
-	go srv.Serve(listener)
-
-	// Continue
-	return nil
-}
-
-func getListener(address string, c *TLSConfig) (net.Listener, error) {
-	if c == nil {
-		return net.Listen("tcp", address)
-	}
-	return nil, fmt.Errorf("Not implemented")
+	return s.Serve(Listener)
 }
