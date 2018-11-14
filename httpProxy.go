@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
-	proxyBuilders["http"] = buildHTTPProxy
-	proxyBuilders["https"] = buildHTTPProxy
+	proxyFactory["http"] = buildHTTPProxy
+	proxyFactory["https"] = buildHTTPProxy
 }
 
 func buildHTTPProxy(c ServiceConfig) (Proxy, error) {

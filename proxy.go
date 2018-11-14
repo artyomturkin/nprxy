@@ -13,17 +13,9 @@ type Proxy interface {
 	Serve(ctx context.Context, Listener net.Listener, DialUpstream DialUpstream) error
 }
 
-// Proxy factory
-type buildProxy func(ServiceConfig) (Proxy, error)
-
-var proxyBuilders = map[string]buildProxy{}
-
-// Listener factory
-type buildListener func(ServiceConfig) (net.Listener, error)
-
-var listenerFactory = map[string]buildListener{}
-
-// Upstream dial func factory
-type buildUpstreamDialer func(ServiceConfig) (DialUpstream, error)
-
-var upstreamDialFactory = map[string]buildUpstreamDialer{}
+// Proxy, Listener and Upstream factory
+var (
+	proxyFactory        = map[string]func(ServiceConfig) (Proxy, error){}
+	listenerFactory     = map[string]func(ServiceConfig) (net.Listener, error){}
+	upstreamDialFactory = map[string]func(ServiceConfig) (DialUpstream, error){}
+)
