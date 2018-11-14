@@ -1,4 +1,4 @@
-package nprxy_test
+package nprxy
 
 import (
 	"context"
@@ -11,8 +11,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/artyomturkin/nprxy"
 )
 
 func TestHTTPProxy(t *testing.T) {
@@ -23,11 +21,11 @@ func TestHTTPProxy(t *testing.T) {
 	defer ts.Close()
 
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
-	pUrl := "http://" + l.Addr().String()
+	pu := "http://" + l.Addr().String()
 	ctx, cancel := context.WithCancel(context.Background())
 	u, _ := url.Parse(ts.URL)
 
-	p := &nprxy.HTTPProxy{
+	p := &httpProxy{
 		Upstream: u,
 		Grace:    time.Second * 30,
 	}
@@ -40,7 +38,7 @@ func TestHTTPProxy(t *testing.T) {
 		wg.Done()
 	}()
 
-	resp, _ := http.Get(pUrl + "/api")
+	resp, _ := http.Get(pu + "/api")
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	cancel()
@@ -69,11 +67,11 @@ func BenchmarkHTTPProxy(b *testing.B) {
 	defer ts.Close()
 
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
-	pUrl := "http://" + l.Addr().String()
+	pu := "http://" + l.Addr().String()
 	ctx, cancel := context.WithCancel(context.Background())
 	u, _ := url.Parse(ts.URL)
 
-	p := &nprxy.HTTPProxy{
+	p := &httpProxy{
 		Upstream: u,
 		Grace:    time.Second * 30,
 	}
@@ -86,7 +84,7 @@ func BenchmarkHTTPProxy(b *testing.B) {
 	}()
 
 	for n := 0; n < b.N; n++ {
-		resp, _ := http.Get(pUrl + "/api")
+		resp, _ := http.Get(pu + "/api")
 		ioutil.ReadAll(resp.Body)
 	}
 

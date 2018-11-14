@@ -21,7 +21,7 @@ type httpProxyBuilder struct{}
 func (httpProxyBuilder) Build(c ServiceConfig) (Proxy, error) {
 	u, _ := url.Parse(c.Upstream)
 
-	h := &HTTPProxy{
+	h := &httpProxy{
 		Upstream: u,
 		Grace:    c.Grace,
 		Timeout:  c.Timeout,
@@ -35,8 +35,8 @@ func (httpProxyBuilder) Build(c ServiceConfig) (Proxy, error) {
 	return h, nil
 }
 
-// HTTPProxy forwards HTTP requests to upstream service
-type HTTPProxy struct {
+// httpProxy forwards HTTP requests to upstream service
+type httpProxy struct {
 	Upstream    *url.URL
 	Grace       time.Duration
 	Timeout     time.Duration
@@ -44,7 +44,7 @@ type HTTPProxy struct {
 }
 
 // Serve starts http server on listener, that uses connection from DialUpstream func to connect to upstream service and routes requests and response to and from upstream service
-func (h *HTTPProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error)) error {
+func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error)) error {
 	r := httputil.NewSingleHostReverseProxy(h.Upstream)
 	t := &http.Transport{
 		Dial:    DialUpstream,
