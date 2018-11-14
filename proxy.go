@@ -17,3 +17,13 @@ type Proxy interface {
 type buildProxy func(ServiceConfig) (Proxy, error)
 
 var proxyBuilders = map[string]buildProxy{}
+
+// Listener factory
+type buildListener func(ServiceConfig) (net.Listener, error)
+
+var listenerFactory = map[string]buildListener{}
+
+// Upstream dial func factory
+type buildUpstreamDialer func(ServiceConfig) (DialUpstream, error)
+
+var upstreamDialFactory = map[string]buildUpstreamDialer{}
