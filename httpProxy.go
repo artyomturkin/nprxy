@@ -12,13 +12,11 @@ import (
 )
 
 func init() {
-	proxyBuilders["http"] = httpProxyBuilder{}
-	proxyBuilders["https"] = httpProxyBuilder{}
+	proxyBuilders["http"] = buildHTTPProxy
+	proxyBuilders["https"] = buildHTTPProxy
 }
 
-type httpProxyBuilder struct{}
-
-func (httpProxyBuilder) Build(c ServiceConfig) (Proxy, error) {
+func buildHTTPProxy(c ServiceConfig) (Proxy, error) {
 	u, _ := url.Parse(c.Upstream)
 
 	h := &httpProxy{
@@ -44,7 +42,7 @@ type httpProxy struct {
 }
 
 // Serve starts http server on listener, that uses connection from DialUpstream func to connect to upstream service and routes requests and response to and from upstream service
-func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error)) error {
+func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream DialUpstream) error {
 	r := httputil.NewSingleHostReverseProxy(h.Upstream)
 	t := &http.Transport{
 		Dial:    DialUpstream,

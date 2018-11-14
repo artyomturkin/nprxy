@@ -5,13 +5,15 @@ import (
 	"net"
 )
 
+// DialUpstream func to create conn to upstream service
+type DialUpstream func(network, addr string) (net.Conn, error)
+
 // Proxy forwards data from listener to upstream connection
 type Proxy interface {
-	Serve(ctx context.Context, Listener net.Listener, DialUpstream func(network, addr string) (net.Conn, error)) error
+	Serve(ctx context.Context, Listener net.Listener, DialUpstream DialUpstream) error
 }
 
-var proxyBuilders = map[string]proxyBuilder{}
+// Proxy factory
+type buildProxy func(ServiceConfig) (Proxy, error)
 
-type proxyBuilder interface {
-	Build(ServiceConfig) (Proxy, error)
-}
+var proxyBuilders = map[string]buildProxy{}
