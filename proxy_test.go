@@ -79,10 +79,19 @@ func BenchmarkProxy(b *testing.B) {
 		wg.Done()
 	}()
 
-	for n := 0; n < b.N; n++ {
-		resp, _ := http.Get("http://127.0.0.1:59010/api")
-		ioutil.ReadAll(resp.Body)
-	}
+	b.Run("native", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			resp, _ := http.Get(ts.URL)
+			ioutil.ReadAll(resp.Body)
+		}
+	})
+
+	b.Run("proxy", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			resp, _ := http.Get("http://127.0.0.1:59010/api")
+			ioutil.ReadAll(resp.Body)
+		}
+	})
 
 	cancel()
 	wg.Wait()
