@@ -18,6 +18,9 @@ import (
 	"time"
 
 	"github.com/artyomturkin/nprxy"
+	_ "github.com/artyomturkin/nprxy/protocol/http"
+	_ "github.com/artyomturkin/nprxy/transport/plain"
+	_ "github.com/artyomturkin/nprxy/transport/tls"
 )
 
 func testServer() *httptest.Server {

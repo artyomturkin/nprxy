@@ -17,9 +17,9 @@ type Proxy interface {
 
 // Proxy, Listener and Upstream factory
 var (
-	proxyFactory        = map[string]func(ServiceConfig) (Proxy, error){}
-	listenerFactory     = map[string]func(ServiceConfig) (net.Listener, error){}
-	upstreamDialFactory = map[string]func(ServiceConfig) (DialUpstream, error){}
+	ProxyFactory        = map[string]func(ServiceConfig) (Proxy, error){}
+	ListenerFactory     = map[string]func(ServiceConfig) (net.Listener, error){}
+	UpstreamDialFactory = map[string]func(ServiceConfig) (DialUpstream, error){}
 )
 
 // ProxyService create proxy and forward traffic
@@ -30,7 +30,7 @@ func ProxyService(ctx context.Context, c ServiceConfig) error {
 	}
 
 	// Create proxy with factory
-	pf, ok := proxyFactory[u.Scheme]
+	pf, ok := ProxyFactory[u.Scheme]
 	if !ok {
 		return fmt.Errorf("unsupported upstream scheme %s", u.Scheme)
 	}
@@ -44,7 +44,7 @@ func ProxyService(ctx context.Context, c ServiceConfig) error {
 	if c.Listen.Kind == "" {
 		c.Listen.Kind = "plain"
 	}
-	lf, ok := listenerFactory[c.Listen.Kind]
+	lf, ok := ListenerFactory[c.Listen.Kind]
 	if !ok {
 		return fmt.Errorf("unsupported listener type %s", c.Listen.Kind)
 	}
@@ -55,7 +55,7 @@ func ProxyService(ctx context.Context, c ServiceConfig) error {
 	}
 
 	// Create upstream with factory
-	udf, ok := upstreamDialFactory["plain"]
+	udf, ok := UpstreamDialFactory["plain"]
 	if !ok {
 		return fmt.Errorf("unsupported Upstream dialer type %s", "TODO")
 	}

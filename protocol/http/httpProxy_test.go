@@ -1,11 +1,11 @@
-package nprxy
+package http
 
 import (
 	"context"
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
+	gohttp "net/http"
 	"net/http/httptest"
 	"net/url"
 	"sync"
@@ -14,10 +14,10 @@ import (
 )
 
 func TestHTTPProxy(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w gohttp.ResponseWriter, r *gohttp.Request) {
 		io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
-	ts := httptest.NewServer(http.HandlerFunc(handler))
+	ts := httptest.NewServer(gohttp.HandlerFunc(handler))
 	defer ts.Close()
 
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
@@ -39,7 +39,7 @@ func TestHTTPProxy(t *testing.T) {
 		wg.Done()
 	}()
 
-	resp, _ := http.Get(pu + "/api")
+	resp, _ := gohttp.Get(pu + "/api")
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	cancel()
@@ -55,16 +55,16 @@ func TestHTTPProxy(t *testing.T) {
 	}
 
 	wg.Wait()
-	if err != http.ErrServerClosed {
+	if err != gohttp.ErrServerClosed {
 		t.Errorf("Serve failed: %v", err)
 	}
 }
 
 func BenchmarkHTTPProxy(b *testing.B) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w gohttp.ResponseWriter, r *gohttp.Request) {
 		io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
-	ts := httptest.NewServer(http.HandlerFunc(handler))
+	ts := httptest.NewServer(gohttp.HandlerFunc(handler))
 	defer ts.Close()
 
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
@@ -86,7 +86,7 @@ func BenchmarkHTTPProxy(b *testing.B) {
 	}()
 
 	for n := 0; n < b.N; n++ {
-		resp, _ := http.Get(pu + "/api")
+		resp, _ := gohttp.Get(pu + "/api")
 		ioutil.ReadAll(resp.Body)
 	}
 

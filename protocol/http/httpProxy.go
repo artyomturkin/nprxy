@@ -1,24 +1,25 @@
-package nprxy
+package http
 
 import (
 	"context"
 	"net"
-	"net/http"
+	gohttp "net/http"
 	"net/http/httputil"
 	"net/url"
 	"time"
 
+	"github.com/artyomturkin/nprxy"
 	"github.com/labstack/echo/middleware"
 
 	"github.com/labstack/echo"
 )
 
 func init() {
-	proxyFactory["http"] = buildHTTPProxy
-	proxyFactory["https"] = buildHTTPProxy
+	nprxy.ProxyFactory["http"] = buildHTTPProxy
+	nprxy.ProxyFactory["https"] = buildHTTPProxy
 }
 
-func buildHTTPProxy(c ServiceConfig) (Proxy, error) {
+func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
 	u, _ := url.Parse(c.Upstream)
 
 	h := &httpProxy{
@@ -46,12 +47,12 @@ type httpProxy struct {
 }
 
 // Serve starts http server on listener, that uses connection from DialUpstream func to connect to upstream service and routes requests and response to and from upstream service
-func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream DialUpstream) error {
+func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstream nprxy.DialUpstream) error {
 	r := httputil.NewSingleHostReverseProxy(h.Upstream)
-	t := &http.Transport{
+	t := &gohttp.Transport{
 		Dial:    DialUpstream,
 		DialTLS: DialUpstream,
-		Proxy:   http.ProxyFromEnvironment,
+		Proxy:   gohttp.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   h.Timeout,
 			KeepAlive: 30 * time.Second,
@@ -78,7 +79,7 @@ func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstre
 	}
 	e.Any("/*", echo.WrapHandler(r), mws...)
 
-	s := http.Server{
+	s := gohttp.Server{
 		Handler: e,
 	}
 
