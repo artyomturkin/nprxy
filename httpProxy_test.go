@@ -26,8 +26,9 @@ func TestHTTPProxy(t *testing.T) {
 	u, _ := url.Parse(ts.URL)
 
 	p := &httpProxy{
-		Upstream: u,
-		Grace:    time.Second * 30,
+		Upstream:   u,
+		Grace:      time.Second * 30,
+		DisableLog: true,
 	}
 
 	wg := sync.WaitGroup{}
@@ -72,8 +73,9 @@ func BenchmarkHTTPProxy(b *testing.B) {
 	u, _ := url.Parse(ts.URL)
 
 	p := &httpProxy{
-		Upstream: u,
-		Grace:    time.Second * 30,
+		Upstream:   u,
+		Grace:      time.Second * 30,
+		DisableLog: true,
 	}
 
 	wg := sync.WaitGroup{}

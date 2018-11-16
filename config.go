@@ -11,10 +11,11 @@ type Config struct {
 
 // ServiceConfig general service configuration
 type ServiceConfig struct {
-	Name     string
-	Listen   ListenerConfig
-	Upstream string
-	Grace    time.Duration
+	Name       string
+	Listen     ListenerConfig
+	Upstream   string
+	Grace      time.Duration
+	DisableLog bool
 
 	// HTTP properties
 	Timeout time.Duration

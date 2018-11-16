@@ -22,9 +22,10 @@ func buildHTTPProxy(c ServiceConfig) (Proxy, error) {
 	u, _ := url.Parse(c.Upstream)
 
 	h := &httpProxy{
-		Upstream: u,
-		Grace:    c.Grace,
-		Timeout:  c.Timeout,
+		Upstream:   u,
+		Grace:      c.Grace,
+		Timeout:    c.Timeout,
+		DisableLog: c.DisableLog,
 	}
 	if h.Grace == 0 {
 		h.Grace = 5 * time.Second // Set default grace period for shutdown
@@ -41,6 +42,7 @@ type httpProxy struct {
 	Grace       time.Duration
 	Timeout     time.Duration
 	Middlewares []echo.MiddlewareFunc
+	DisableLog  bool
 }
 
 // Serve starts http server on listener, that uses connection from DialUpstream func to connect to upstream service and routes requests and response to and from upstream service
@@ -70,7 +72,10 @@ func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstre
 	}
 
 	e := echo.New()
-	mws := append(h.Middlewares, middleware.Secure(), rewriteHost, middleware.Logger())
+	mws := append(h.Middlewares, middleware.Secure(), rewriteHost)
+	if !h.DisableLog {
+		mws = append(mws, middleware.Logger())
+	}
 	e.Any("/*", echo.WrapHandler(r), mws...)
 
 	s := http.Server{

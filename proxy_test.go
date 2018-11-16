@@ -33,7 +33,8 @@ func TestPlainProxy(t *testing.T) {
 	defer ts.Close()
 
 	service := nprxy.ServiceConfig{
-		Name: "test",
+		Name:       "test",
+		DisableLog: true,
 		Listen: nprxy.ListenerConfig{
 			Address: "127.0.0.1:59010",
 		},
@@ -76,7 +77,8 @@ func BenchmarkPlainProxy(b *testing.B) {
 	defer ts.Close()
 
 	service := nprxy.ServiceConfig{
-		Name: "test",
+		Name:       "test",
+		DisableLog: true,
 		Listen: nprxy.ListenerConfig{
 			Address: "127.0.0.1:59010",
 		},
@@ -169,7 +171,8 @@ func TestTLSProxy(t *testing.T) {
 	cert, key := createCertKey(t)
 
 	service := nprxy.ServiceConfig{
-		Name: "test",
+		Name:       "test",
+		DisableLog: true,
 		Listen: nprxy.ListenerConfig{
 			Address: "127.0.0.1:59010",
 			Kind:    "tls",
@@ -219,7 +222,8 @@ func BenchmarkTLSProxy(b *testing.B) {
 	cert, key := createCertKey(b)
 
 	service := nprxy.ServiceConfig{
-		Name: "test",
+		Name:       "test",
+		DisableLog: true,
 		Listen: nprxy.ListenerConfig{
 			Address: "127.0.0.1:59010",
 			Kind:    "tls",
