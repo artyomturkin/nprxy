@@ -70,7 +70,7 @@ func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstre
 	}
 
 	e := echo.New()
-	mws := append(h.Middlewares, rewriteHost, middleware.Logger())
+	mws := append(h.Middlewares, middleware.Secure(), rewriteHost, middleware.Logger())
 	e.Any("/*", echo.WrapHandler(r), mws...)
 
 	s := http.Server{
