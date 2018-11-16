@@ -1,5 +1,7 @@
 # nprxy
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/artyomturkin/nprxy)](https://goreportcard.com/report/github.com/artyomturkin/nprxy)
+
 ## Service Configuration
 
 |Key|Required|Default|Purpose|
