@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/labstack/echo/middleware"
+
 	"github.com/labstack/echo"
 )
 
@@ -60,8 +62,16 @@ func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstre
 	}
 	r.Transport = t
 
+	rewriteHost := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Request().Host = h.Upstream.Host
+			return next(c)
+		}
+	}
+
 	e := echo.New()
-	e.Any("/*", echo.WrapHandler(r), h.Middlewares...)
+	mws := append(h.Middlewares, rewriteHost, middleware.Logger())
+	e.Any("/*", echo.WrapHandler(r), mws...)
 
 	s := http.Server{
 		Handler: e,
