@@ -15,7 +15,12 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		"services": [
 			{
 				"name": "testService",
-		        "listen": ":8080",
+		        "listen": {
+					"kind": "tls",
+					"address": ":8080",
+					"tlsCert": "example.crt",
+					"tlsKey": "example.key"
+				},
 			    "upstream": "http://localhost",
 			    "grace": "30s",
 			    "timeout": "50h"
@@ -45,8 +50,11 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	if c.Services[0].Name != "testService" {
 		t.Errorf("Wrong service name: %v, expected: testService", c.Services[0].Name)
 	}
-	if c.Services[0].Listen != ":8080" {
+	if c.Services[0].Listen.Address != ":8080" {
 		t.Errorf("listen endpoint is incorrect: %s, expected :8080\n%+v", c.Services[0].Listen, viper.Get("service"))
+	}
+	if c.Services[0].Listen.TLSCert != "example.crt" {
+		t.Errorf("listen cert is incorrect: %s, expected example.crt\n%+v", c.Services[0].Listen, viper.Get("service"))
 	}
 }
 
@@ -54,7 +62,8 @@ func TestConfigUnmarshalYAML(t *testing.T) {
 	cs := `
 services:
 - name: testService
-  listen: :8080
+  listen:
+    address: :8080
   upstream: http://localhost
   grace: 30s
   timeout: 50h`
@@ -81,7 +90,7 @@ services:
 	if c.Services[0].Name != "testService" {
 		t.Errorf("Wrong service name: %v, expected: testService", c.Services[0].Name)
 	}
-	if c.Services[0].Listen != ":8080" {
+	if c.Services[0].Listen.Address != ":8080" {
 		t.Errorf("listen endpoint is incorrect: %s, expected :8080\n%+v", c.Services[0].Listen, viper.Get("service"))
 	}
 }

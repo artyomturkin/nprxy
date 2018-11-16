@@ -9,5 +9,5 @@ func init() {
 }
 
 func buildPlainListener(c ServiceConfig) (net.Listener, error) {
-	return net.Listen("tcp", c.Listen)
+	return net.Listen("tcp", c.Listen.Address)
 }

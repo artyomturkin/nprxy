@@ -12,10 +12,18 @@ type Config struct {
 // ServiceConfig general service configuration
 type ServiceConfig struct {
 	Name     string
-	Listen   string
+	Listen   ListenerConfig
 	Upstream string
 	Grace    time.Duration
 
 	// HTTP properties
 	Timeout time.Duration
+}
+
+// ListenerConfig configuration of inbound channel
+type ListenerConfig struct {
+	Address string
+	Kind    string
+	TLSCert string `json:"tls_cert"`
+	TLSKey  string `json:"tls_key"`
 }

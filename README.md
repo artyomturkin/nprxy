@@ -9,13 +9,20 @@
 |Upstream|yes||Endpoint to forward data to. Schema determines proxy kind (HTTP, TCP)|
 |Grace|no|5s|Grace period for proxy to terminate existing connections|
 
-Example:
+### Examples:
+
+Configuration in json format with TLS listener
 ```json
 {
     "services": [
         {
             "name": "testService",
-            "listen": ":8080",
+            "listen": {
+                "kind": "tls",
+                "address": ":8080",
+                "tlsCert": "example.crt",
+                "tlsKey": "example.key"
+            },
             "upstream": "http://localhost",
             "grace": "30s",
             "timeout": "50h"
@@ -23,14 +30,18 @@ Example:
     ]
 }
 ```
+
+Configuration in yaml format with plain http listener
 ```yaml
 services:
 - name: testService
-  listen: :8080
+  listen:
+    address: :8080
   upstream: http://localhost
   grace: 30s
   timeout: 50h
 ```
+
 
 ## HTTP Proxy
 

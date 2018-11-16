@@ -41,9 +41,12 @@ func ProxyService(ctx context.Context, c ServiceConfig) error {
 	}
 
 	// Create listener with factory
-	lf, ok := listenerFactory["plain"]
+	if c.Listen.Kind == "" {
+		c.Listen.Kind = "plain"
+	}
+	lf, ok := listenerFactory[c.Listen.Kind]
 	if !ok {
-		return fmt.Errorf("unsupported listener type %s", "TODO")
+		return fmt.Errorf("unsupported listener type %s", c.Listen.Kind)
 	}
 
 	l, err := lf(c)
