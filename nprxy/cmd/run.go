@@ -21,9 +21,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
 
+	"github.com/artyomturkin/nprxy"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // runCmd represents the run command
@@ -49,5 +56,33 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	return fmt.Errorf("run called")
+	c := &nprxy.Config{}
+	err := viper.Unmarshal(c)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	if len(c.Services) == 0 {
+		fmt.Printf("Must provide at least one service in config file\n")
+		os.Exit(1)
+	}
+
+	for _, service := range c.Services {
+		go func(s nprxy.ServiceConfig) {
+			log.Printf("Starting %s", s.Name)
+			err := nprxy.ProxyService(ctx, s)
+			if err != http.ErrServerClosed {
+				fmt.Printf("Proxy service %s failed: %v\n", s.Name, err)
+				os.Exit(2)
+			}
+		}(service)
+	}
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
+	cancel()
+	return nil
 }

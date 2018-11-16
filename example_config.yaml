@@ -1,0 +1,7 @@
+services:
+- name: docker_hub_registry
+  listen:
+    address: :80
+  upstream: https://registry-1.docker.io
+  grace: 30s
+  timeout: 50h
