@@ -5,7 +5,10 @@
 |Key|Required|Default|Purpose|
 |---|--------|-------|-------|
 |Name|yes||Name of the service|
-|Listen|yes||Endpoint for proxy to listen on. [ip]:port|
+|Listen.Address|yes||Endpoint for proxy to listen on. [ip]:port|
+|Listen.Kind|no|plain|Listen endpoint type: plain, tls|
+|Listen.tlsCert|no||Path to TLS cert. Required if Kind=tls|
+|Listen.tlsKey|no||Path to TLS key. Required if Kind=tls|
 |Upstream|yes||Endpoint to forward data to. Schema determines proxy kind (HTTP, TCP)|
 |Grace|no|5s|Grace period for proxy to terminate existing connections|
 
