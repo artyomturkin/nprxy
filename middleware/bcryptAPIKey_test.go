@@ -23,7 +23,10 @@ func TestBcryptAPIKey(t *testing.T) {
 
 	e := echo.New()
 
-	h := BCryptAPIKey(map[string]string{"test-system": "$2a$10$0ZYFiKcYonvy.y/P4jAzJOr79AQoeO1LGO2hyj27QS5pTx/1nyzRm"})(func(c echo.Context) error {
+	h := BCryptAPIKey(
+		map[string]string{
+			"test-system": /*api-key*/ "$2a$10$0ZYFiKcYonvy.y/P4jAzJOr79AQoeO1LGO2hyj27QS5pTx/1nyzRm",
+		})(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
