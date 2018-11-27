@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net"
 	gohttp "net/http"
 	"net/http/httputil"
@@ -9,7 +11,10 @@ import (
 	"time"
 
 	"github.com/artyomturkin/nprxy"
+	"github.com/artyomturkin/nprxy/middleware"
+	"github.com/casbin/casbin"
 	"github.com/labstack/echo/middleware"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/labstack/echo"
 )
@@ -33,6 +38,34 @@ func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
 	}
 	if h.Timeout == 0 {
 		h.Timeout = 5 * time.Second // Set default timeout
+	}
+	if c.HTTP.Kind != "" {
+		h.Middlewares = append(h.Middlewares, mw.OperationResolver(c.HTTP.Kind))
+	}
+	if c.HTTP.Authn != nil {
+		if c.HTTP.Authn.Kind == "api-key" {
+			yamlFile, err := ioutil.ReadFile(c.HTTP.Authn.Params["path"].(string))
+			if err != nil {
+				panic(fmt.Errorf("yamlFile.Get err   #%v ", err))
+			}
+			keys := map[string]string{}
+			err = yaml.Unmarshal(yamlFile, keys)
+			if err != nil {
+				panic(fmt.Errorf("Unmarshal keys: %v", err))
+			}
+
+			h.Middlewares = append(h.Middlewares, mw.BCryptAPIKey(keys))
+		}
+	}
+	if c.HTTP.Authz != nil {
+		if c.HTTP.Authz.Kind == "casbin" {
+			ce := casbin.NewEnforcer(c.HTTP.Authz.Params["model"].(string), c.HTTP.Authz.Params["policy"].(string))
+			var p []func(echo.Context) interface{}
+			for _, v := range c.HTTP.Authz.Params["parameters"].([]string) {
+				p = append(p, mw.ValueFromContext(v))
+			}
+			h.Middlewares = append(h.Middlewares, mw.CasbinEnforcer(ce, p...))
+		}
 	}
 	return h, nil
 }
