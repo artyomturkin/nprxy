@@ -17,8 +17,10 @@ type ServiceConfig struct {
 	Grace      time.Duration
 	DisableLog bool
 
-	// HTTP properties
+	// RPC properties
 	Timeout time.Duration
+
+	HTTP HTTPConfig
 }
 
 // ListenerConfig configuration of inbound channel
@@ -27,4 +29,17 @@ type ListenerConfig struct {
 	Kind    string
 	TLSCert string `json:"tls_cert"`
 	TLSKey  string `json:"tls_key"`
+}
+
+// HTTPConfig configuration for HTTP protocol
+type HTTPConfig struct {
+	Kind  string
+	Authn *Parameters
+	Authz *Parameters
+}
+
+// Parameters of config
+type Parameters struct {
+	Kind   string
+	Params map[string]interface{}
 }

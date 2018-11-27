@@ -264,3 +264,232 @@ func BenchmarkTLSProxy(b *testing.B) {
 	cancel()
 	wg.Wait()
 }
+
+// Test and benchmark plain listener, http proxy and plain upstream for SOAP service
+func TestPlainSOAPProxy(t *testing.T) {
+	ts := testServer()
+	defer ts.Close()
+
+	service := nprxy.ServiceConfig{
+		Name:       "test",
+		DisableLog: true,
+		Listen: nprxy.ListenerConfig{
+			Address: "127.0.0.1:59010",
+		},
+		Upstream: ts.URL,
+		HTTP: nprxy.HTTPConfig{
+			Kind: "soap",
+			Authn: &nprxy.Parameters{
+				Kind: "api-key",
+				Params: map[string]interface{}{
+					"path": "example-keys.yaml",
+				},
+			},
+			Authz: &nprxy.Parameters{
+				Kind: "casbin",
+				Params: map[string]interface{}{
+					"model":      "example_model.conf",
+					"policy":     "example_policy.csv",
+					"parameters": []interface{}{"client", "operation"},
+				},
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	var err error
+	go func() {
+		err = nprxy.ProxyService(ctx, service)
+		wg.Done()
+	}()
+
+	req, _ := http.NewRequest("GET", "http://127.0.0.1:59010/api", nil)
+	req.Header.Set("SOAPAction", "http://tempuri.org/test")
+	req.Header.Add("X-NPRXY-Client", "test-system")
+	req.Header.Add("X-NPRXY-Key", "api-key")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	cancel()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Wrong status code: %d, expected 200", resp.StatusCode)
+	}
+	if resp.Header.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("wrong Content-Type: %s, expected: text/html; charset=utf-8", resp.Header.Get("Content-Type"))
+	}
+	if string(body) != "<html><body>Hello World!</body></html>" {
+		t.Errorf("Wrong body: %s, expected: <html><body>Hello World!</body></html>", string(body))
+	}
+
+	wg.Wait()
+	if err != http.ErrServerClosed {
+		t.Errorf("Serve failed: %v", err)
+	}
+}
+
+func BenchmarkPlainSOAPProxy(b *testing.B) {
+	ts := testServer()
+	defer ts.Close()
+
+	service := nprxy.ServiceConfig{
+		Name:       "test",
+		DisableLog: true,
+		Listen: nprxy.ListenerConfig{
+			Address: "127.0.0.1:59010",
+		},
+		Upstream: ts.URL,
+		HTTP: nprxy.HTTPConfig{
+			Kind: "soap",
+			Authn: &nprxy.Parameters{
+				Kind: "api-key",
+				Params: map[string]interface{}{
+					"path": "example-keys.yaml",
+				},
+			},
+			Authz: &nprxy.Parameters{
+				Kind: "casbin",
+				Params: map[string]interface{}{
+					"model":      "example_model.conf",
+					"policy":     "example_policy.csv",
+					"parameters": []interface{}{"client", "operation"},
+				},
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		nprxy.ProxyService(ctx, service)
+		wg.Done()
+	}()
+
+	b.Run("native", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			req, _ := http.NewRequest("GET", ts.URL, nil)
+			req.Header.Set("SOAPAction", "http://tempuri.org/test")
+			req.Header.Add("X-NPRXY-Client", "test-system")
+			req.Header.Add("X-NPRXY-Key", "api-key")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				b.Fatalf("%v", err)
+			}
+			ioutil.ReadAll(resp.Body)
+		}
+	})
+
+	b.Run("proxy", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			req, _ := http.NewRequest("GET", "http://127.0.0.1:59010/api", nil)
+			req.Header.Set("SOAPAction", "http://tempuri.org/test")
+			req.Header.Add("X-NPRXY-Client", "test-system")
+			req.Header.Add("X-NPRXY-Key", "api-key")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				b.Fatalf("%v", err)
+			}
+			ioutil.ReadAll(resp.Body)
+		}
+	})
+
+	cancel()
+	wg.Wait()
+}
+
+func BenchmarkTLSSOAPProxy(b *testing.B) {
+	ts := testServer()
+	defer ts.Close()
+
+	cert, key := createCertKey(b)
+
+	// Disable TLS verification for tests
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	service := nprxy.ServiceConfig{
+		Name:       "test",
+		DisableLog: true,
+		Listen: nprxy.ListenerConfig{
+			Address: "127.0.0.1:59010",
+			Kind:    "tls",
+			TLSCert: cert,
+			TLSKey:  key,
+		},
+		Upstream: ts.URL,
+		HTTP: nprxy.HTTPConfig{
+			Kind: "soap",
+			Authn: &nprxy.Parameters{
+				Kind: "api-key",
+				Params: map[string]interface{}{
+					"path": "example-keys.yaml",
+				},
+			},
+			Authz: &nprxy.Parameters{
+				Kind: "casbin",
+				Params: map[string]interface{}{
+					"model":      "example_model.conf",
+					"policy":     "example_policy.csv",
+					"parameters": []interface{}{"client", "operation"},
+				},
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		nprxy.ProxyService(ctx, service)
+		wg.Done()
+	}()
+
+	b.Run("native", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			req, _ := http.NewRequest("GET", ts.URL, nil)
+			req.Header.Set("SOAPAction", "http://tempuri.org/test")
+			req.Header.Add("X-NPRXY-Client", "test-system")
+			req.Header.Add("X-NPRXY-Key", "api-key")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				b.Fatalf("%v", err)
+			}
+			ioutil.ReadAll(resp.Body)
+		}
+	})
+
+	b.Run("proxy", func(bb *testing.B) {
+		for n := 0; n < bb.N; n++ {
+			req, _ := http.NewRequest("GET", "https://127.0.0.1:59010/api", nil)
+			req.Header.Set("SOAPAction", "http://tempuri.org/test")
+			req.Header.Add("X-NPRXY-Client", "test-system")
+			req.Header.Add("X-NPRXY-Key", "api-key")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				b.Fatalf("%v", err)
+			}
+			ioutil.ReadAll(resp.Body)
+		}
+	})
+
+	cancel()
+	wg.Wait()
+}
