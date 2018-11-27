@@ -39,12 +39,24 @@ Configuration in json format with TLS listener
 Configuration in yaml format with plain http listener
 ```yaml
 services:
-- name: testService
+- name: docker_hub_registry
   listen:
-    address: :8080
-  upstream: http://localhost
+    address: :80
+  upstream: https://registry-1.docker.io
   grace: 30s
   timeout: 50h
+  http:
+    kind: soap
+    authn:
+      kind: api-key
+      params:
+        path: example-keys.yaml
+    authz:
+      kind: casbin
+      params:
+        model: example_model.conf
+        policy: example_policy.csv
+        parameters: [client, operation]
 ```
 
 
@@ -65,12 +77,14 @@ goarch: amd64
 pkg: github.com/artyomturkin/nprxy
 PASS
 
-benchmark                      iter        time/iter   bytes alloc          allocs
----------                      ----        ---------   -----------          ------
-BenchmarkPlainProxy/native-4   2000     640.50 μs/op     4981 B/op    65 allocs/op
-BenchmarkPlainProxy/proxy-4    1000    1331.99 μs/op    43872 B/op   153 allocs/op
-
-BenchmarkTLSProxy/native-4     2000     635.00 μs/op     4982 B/op    65 allocs/op
-BenchmarkTLSProxy/proxy-4      2000     859.00 μs/op    43878 B/op   155 allocs/op
-BenchmarkTLSProxy/proxyLog-4   1000    1445.11 μs/op    44320 B/op   164 allocs/op
+benchmark                          iter        time/iter   bytes alloc          allocs
+---------                          ----        ---------   -----------          ------
+BenchmarkPlainProxy/native-4       2000     733.00 μs/op     5277 B/op    70 allocs/op
+BenchmarkPlainProxy/proxy-4        1000    1575.29 μs/op    44419 B/op   163 allocs/op
+BenchmarkTLSProxy/native-4         2000     896.47 μs/op     5268 B/op    70 allocs/op
+BenchmarkTLSProxy/proxy-4          2000    1121.07 μs/op    44185 B/op   162 allocs/op
+BenchmarkPlainSOAPProxy/native-4   2000     726.12 μs/op     6318 B/op    88 allocs/op
+BenchmarkPlainSOAPProxy/proxy-4     500    2937.28 μs/op    57912 B/op   319 allocs/op
+BenchmarkTLSSOAPProxy/native-4     2000     717.99 μs/op     6319 B/op    88 allocs/op
+BenchmarkTLSSOAPProxy/proxy-4      1000    2451.32 μs/op    57728 B/op   318 allocs/op
 ```

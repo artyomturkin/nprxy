@@ -66,7 +66,19 @@ services:
     address: :8080
   upstream: http://localhost
   grace: 30s
-  timeout: 50h`
+  timeout: 50h
+  http:
+    kind: soap
+    authn:
+      kind: api-key
+      params:
+        path: example-keys.yaml
+    authz:
+      kind: casbin
+      params:
+        model: example_model.conf
+        policy: example_policy.csv
+        parameters: [client, operation]`
 
 	c := &nprxy.Config{}
 	viper.SetConfigType("yaml")
@@ -92,5 +104,8 @@ services:
 	}
 	if c.Services[0].Listen.Address != ":8080" {
 		t.Errorf("listen endpoint is incorrect: %s, expected :8080\n%+v", c.Services[0].Listen, viper.Get("service"))
+	}
+	if c.Services[0].HTTP.Authz.Params["parameters"].([]interface{})[0].(string) != "client" {
+		t.Errorf("listen endpoint is incorrect: %v, expected client\n%+v", c.Services[0].HTTP.Authz.Params["parameters"].([]interface{})[0], viper.Get("service"))
 	}
 }

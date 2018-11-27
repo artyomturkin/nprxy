@@ -5,3 +5,15 @@ services:
   upstream: https://registry-1.docker.io
   grace: 30s
   timeout: 50h
+  http:
+    kind: soap
+    authn:
+      kind: api-key
+      params:
+        path: example-keys.yaml
+    authz:
+      kind: casbin
+      params:
+        model: example_model.conf
+        policy: example_policy.csv
+        parameters: [client, operation]

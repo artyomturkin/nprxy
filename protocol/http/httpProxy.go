@@ -61,8 +61,8 @@ func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
 		if c.HTTP.Authz.Kind == "casbin" {
 			ce := casbin.NewEnforcer(c.HTTP.Authz.Params["model"].(string), c.HTTP.Authz.Params["policy"].(string))
 			var p []func(echo.Context) interface{}
-			for _, v := range c.HTTP.Authz.Params["parameters"].([]string) {
-				p = append(p, mw.ValueFromContext(v))
+			for _, v := range c.HTTP.Authz.Params["parameters"].([]interface{}) {
+				p = append(p, mw.ValueFromContext(v.(string)))
 			}
 			h.Middlewares = append(h.Middlewares, mw.CasbinEnforcer(ce, p...))
 		}
