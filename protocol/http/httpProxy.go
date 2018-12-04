@@ -33,6 +33,12 @@ func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
 		Timeout:    c.Timeout,
 		DisableLog: c.DisableLog,
 	}
+	if !h.DisableLog {
+		h.Middlewares = append(h.Middlewares, middleware.RequestID(), mw.Logrus())
+	}
+	if !h.DisableLog && c.HTTP.LogBody {
+		h.Middlewares = append(h.Middlewares, middleware.BodyDump(mw.LogrusBodyLogger))
+	}
 	if h.Grace == 0 {
 		h.Grace = 5 * time.Second // Set default grace period for shutdown
 	}
@@ -107,9 +113,6 @@ func (h *httpProxy) Serve(ctx context.Context, Listener net.Listener, DialUpstre
 
 	e := echo.New()
 	mws := append(h.Middlewares, middleware.Secure(), rewriteHost)
-	if !h.DisableLog {
-		mws = append(mws, middleware.Logger())
-	}
 	e.Any("/*", echo.WrapHandler(r), mws...)
 
 	s := gohttp.Server{

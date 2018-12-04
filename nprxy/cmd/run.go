@@ -23,10 +23,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
+
+	"github.com/Sirupsen/logrus"
 
 	"github.com/artyomturkin/nprxy"
 	"github.com/spf13/cobra"
@@ -69,9 +70,17 @@ func run(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	if c.LogJSON {
+		logrus.SetFormatter(&logrus.JSONFormatter{FieldMap: logrus.FieldMap{
+			logrus.FieldKeyTime:  "@t",
+			logrus.FieldKeyMsg:   "@m",
+			logrus.FieldKeyLevel: "@l",
+		}})
+	}
+
 	for _, service := range c.Services {
 		go func(s nprxy.ServiceConfig) {
-			log.Printf("Starting %s", s.Name)
+			logrus.Infof("Starting %s", s.Name)
 			err := nprxy.ProxyService(ctx, s)
 			if err != http.ErrServerClosed {
 				fmt.Printf("Proxy service %s failed: %v\n", s.Name, err)
