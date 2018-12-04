@@ -6,6 +6,7 @@ import (
 
 // Config for nprxy
 type Config struct {
+	LogJSON  bool
 	Services []ServiceConfig
 }
 
@@ -33,9 +34,10 @@ type ListenerConfig struct {
 
 // HTTPConfig configuration for HTTP protocol
 type HTTPConfig struct {
-	Kind  string
-	Authn *Parameters
-	Authz *Parameters
+	Kind    string
+	Authn   *Parameters
+	Authz   *Parameters
+	LogBody bool
 }
 
 // Parameters of config
