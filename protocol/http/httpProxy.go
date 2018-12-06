@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/artyomturkin/nprxy"
 	"github.com/artyomturkin/nprxy/middleware"
 	"github.com/casbin/casbin"
@@ -25,6 +26,9 @@ func init() {
 }
 
 func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
+	l := logrus.WithFields(map[string]interface{}{
+		"service": c.Name,
+	})
 	u, _ := url.Parse(c.Upstream)
 
 	h := &httpProxy{
@@ -34,10 +38,10 @@ func buildHTTPProxy(c nprxy.ServiceConfig) (nprxy.Proxy, error) {
 		DisableLog: c.DisableLog,
 	}
 	if !h.DisableLog {
-		h.Middlewares = append(h.Middlewares, middleware.RequestID(), mw.Logrus())
+		h.Middlewares = append(h.Middlewares, middleware.RequestID(), mw.LogrusWithConfig(mw.LogrusConfig{Logger: l}))
 	}
 	if !h.DisableLog && c.HTTP.LogBody {
-		h.Middlewares = append(h.Middlewares, middleware.BodyDump(mw.LogrusBodyLogger))
+		h.Middlewares = append(h.Middlewares, middleware.BodyDump(mw.LogrusBodyLogger(l)))
 	}
 	if h.Grace == 0 {
 		h.Grace = 5 * time.Second // Set default grace period for shutdown
