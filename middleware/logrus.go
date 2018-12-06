@@ -15,6 +15,8 @@ type (
 	LogrusConfig struct {
 		// Skipper defines a function to skip middleware.
 		Skipper middleware.Skipper
+
+		Logger logrus.FieldLogger
 	}
 )
 
@@ -22,6 +24,7 @@ var (
 	// defaultLogrusConfig is the default LogrusConfig middleware config.
 	defaultLogrusConfig = LogrusConfig{
 		Skipper: middleware.DefaultSkipper,
+		Logger:  logrus.StandardLogger(),
 	}
 )
 
@@ -59,7 +62,7 @@ func LogrusWithConfig(config LogrusConfig) echo.MiddlewareFunc {
 				bytesIn = "0"
 			}
 
-			logrus.WithFields(map[string]interface{}{
+			config.Logger.WithFields(map[string]interface{}{
 				"time_rfc3339":  time.Now().Format(time.RFC3339),
 				"request_id":    res.Header().Get(echo.HeaderXRequestID),
 				"remote_ip":     c.RealIP(),
@@ -81,20 +84,22 @@ func LogrusWithConfig(config LogrusConfig) echo.MiddlewareFunc {
 	}
 }
 
-func LogrusBodyLogger(c echo.Context, reqB []byte, resB []byte) {
-	res := c.Response()
+func LogrusBodyLogger(l logrus.FieldLogger) func(c echo.Context, reqB []byte, resB []byte) {
+	return func(c echo.Context, reqB []byte, resB []byte) {
+		res := c.Response()
 
-	if len(reqB) > 0 {
-		logrus.WithFields(map[string]interface{}{
-			"request_id": res.Header().Get(echo.HeaderXRequestID),
-			"body":       fmt.Sprintf("%.20000s", string(reqB)),
-		}).Info("Request body")
-	}
+		if len(reqB) > 0 {
+			l.WithFields(map[string]interface{}{
+				"request_id": res.Header().Get(echo.HeaderXRequestID),
+				"body":       fmt.Sprintf("%.20000s", string(reqB)),
+			}).Info("Request body")
+		}
 
-	if len(resB) > 0 {
-		logrus.WithFields(map[string]interface{}{
-			"request_id": res.Header().Get(echo.HeaderXRequestID),
-			"body":       fmt.Sprintf("%.20000s", string(resB)),
-		}).Info("Response body")
+		if len(resB) > 0 {
+			l.WithFields(map[string]interface{}{
+				"request_id": res.Header().Get(echo.HeaderXRequestID),
+				"body":       fmt.Sprintf("%.20000s", string(resB)),
+			}).Info("Response body")
+		}
 	}
 }

@@ -6,6 +6,7 @@ services:
   grace: 30s
   timeout: 50h
   http:
+    logbody: true
     kind: soap
     authn:
       kind: api-key
